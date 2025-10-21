@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OpenAI Image Generator</title>
+  <style>
+    body { font-family: Arial; text-align: center; margin-top: 50px; }
+    input, button { padding: 10px; width: 300px; margin: 5px; }
+    img { margin-top: 20px; max-width: 512px; border-radius: 10px; }
+  </style>
+</head>
+<body>
+  <h2>🧠 OpenAI Image Generator</h2>
+  <input id="prompt" type="text" placeholder="Enter your prompt..." />
+  <button onclick="generate()">Generate</button>
+  <div id="output"></div>
+
+  <script>
+    async function generate() {
+      const prompt = document.getElementById("prompt").value;
+      document.getElementById("output").innerHTML = "⏳ Generating...";
+
+      const res = await fetch("/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt })
+      });
+
+      const data = await res.json();
+      if (data.image_url) {
+        document.getElementById("output").innerHTML =
+          `<img src="${data.image_url}" alt="Generated image" />`;
+      } else {
+        document.getElementById("output").innerText = "❌ Error generating image.";
+      }
+    }
+  </script>
+</body>
+</html>
