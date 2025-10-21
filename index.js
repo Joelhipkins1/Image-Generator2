@@ -3,14 +3,13 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
-import Replicate from "replicate";
+import fetch from "node-fetch";
+import FormData from "form-data";
+import sharp from "sharp";
 
 dotenv.config();
 
 const app = express();
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-});
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -261,38 +260,98 @@ app.post("/generate", upload.single("image"), async (req, res) => {
     const fileName = req.file.filename;
     const filePath = req.file.path;
     const mimeType = req.file.mimetype;
-    
+
     console.log(`Processing: ${fileName}`);
 
-    // Read and convert to base64
-    const imageBuffer = fs.readFileSync(filePath);
-    const base64Image = imageBuffer.toString('base64');
-    const imageDataUrl = `data:${mimeType};base64,${base64Image}`;
+    // Get image metadata
+    const metadata = await sharp(filePath).metadata();
+    const originalWidth = metadata.width;
+    const originalHeight = metadata.height;
+    const aspectRatio = originalWidth / originalHeight;
 
-    console.log("Starting zombie transformation...");
+    // SDXL allowed dimensions
+    const allowedDimensions = [
+      [1024, 1024], [1152, 896], [1216, 832], [1344, 768],
+      [1536, 640], [640, 1536], [768, 1344], [832, 1216], [896, 1152]
+    ];
 
-    // Using Flux Dev with image-to-image for face preservation
-    const output = await replicate.run(
-      "black-forest-labs/flux-dev",
+    // Find the best matching dimensions based on aspect ratio
+    let bestDimension = allowedDimensions[0];
+    let smallestDifference = Math.abs(aspectRatio - (bestDimension[0] / bestDimension[1]));
+
+    for (const dim of allowedDimensions) {
+      const dimRatio = dim[0] / dim[1];
+      const difference = Math.abs(aspectRatio - dimRatio);
+      if (difference < smallestDifference) {
+        smallestDifference = difference;
+        bestDimension = dim;
+      }
+    }
+
+    console.log(`Resizing from ${originalWidth}x${originalHeight} to ${bestDimension[0]}x${bestDimension[1]}`);
+
+    // Resize image to match SDXL requirements
+    const resizedImageBuffer = await sharp(filePath)
+      .resize(bestDimension[0], bestDimension[1], {
+        fit: 'cover',
+        position: 'center'
+      })
+      .png()
+      .toBuffer();
+
+    console.log("Starting zombie transformation with Stability AI...");
+
+    // Using Stability AI's SDXL img2img for precise control
+    const formData = new FormData();
+    formData.append('init_image', resizedImageBuffer, {
+      filename: fileName,
+      contentType: 'image/png',
+    });
+    formData.append('init_image_mode', 'IMAGE_STRENGTH');
+    formData.append('image_strength', '0.35'); // LOW strength = preserves original image heavily
+    formData.append('text_prompts[0][text]', 'zombie face transformation,big and green eyes, large and sharp teeths, blood marks on face, scars on skin, photorealistic');
+    formData.append('text_prompts[0][weight]', '1');
+    formData.append('text_prompts[1][text]', 'different person, changed background, different clothes, cartoon, anime, blurry');
+    formData.append('text_prompts[1][weight]', '-1');
+    formData.append('cfg_scale', '7');
+    formData.append('steps', '30');
+    formData.append('samples', '1');
+
+    const response = await fetch(
+      'https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/image-to-image',
       {
-        input: {
-          prompt: "zombie transformation, decaying flesh, pale dead skin, bloodshot red eyes, dark veins visible on face, sunken cheeks, undead creature, horror movie makeup, photorealistic, highly detailed face, scary, maintain face structure and features",
-          image: imageDataUrl,
-          prompt_strength: 0.75,  // 0.7-0.8 preserves face well
-          num_inference_steps: 28,
-          guidance_scale: 3.5,
-          output_format: "png",
-          output_quality: 90
-        }
+        method: 'POST',
+        headers: {
+          ...formData.getHeaders(),
+          Accept: 'application/json',
+          Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
+        },
+        body: formData,
       }
     );
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Stability AI error: ${response.statusText} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    const imageUrl = `data:image/png;base64,${result.artifacts[0].base64}`;
+
     console.log("Transformation complete!");
 
-    const imageUrl = Array.isArray(output) ? output[0] : output;
-
-    // Clean up uploaded file
-    fs.unlinkSync(filePath);
+    // Clean up uploaded file with delay to ensure all operations complete
+    setTimeout(() => {
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log(`Cleaned up: ${filePath}`);
+        }
+      } catch (err) {
+        console.warn(`Could not delete file ${filePath}:`, err.message);
+        // File will be cleaned up later or on next restart
+      }
+    }, 1000);
 
     // Send result page
     res.send(`
@@ -407,9 +466,21 @@ app.post("/generate", upload.single("image"), async (req, res) => {
     console.error("Error:", error.message);
     console.error("Full error:", error);
 
-    // Clean up
+    // Clean up with proper error handling
     if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
+      try {
+        setTimeout(() => {
+          try {
+            if (fs.existsSync(req.file.path)) {
+              fs.unlinkSync(req.file.path);
+            }
+          } catch (unlinkErr) {
+            console.warn('Cleanup warning:', unlinkErr.message);
+          }
+        }, 1000);
+      } catch (err) {
+        console.warn('Cleanup warning:', err.message);
+      }
     }
 
     res.status(500).send(`
@@ -506,5 +577,6 @@ app.get("/health", (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🧟 Zombie Transformer running on http://localhost:${PORT}`);
-  console.log(`📁 Make sure REPLICATE_API_TOKEN is set in your .env file`);
+  console.log(`📁 Make sure STABILITY_API_KEY is set in your .env file`);
+  console.log(`🔑 Get your API key from https://platform.stability.ai/account/keys`);
 });
