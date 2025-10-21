@@ -49,62 +49,175 @@ app.get("/", (req, res) => {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>🧟 Zombie Face Transformer</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Zombie Face Transformer</title>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
       <style>
-        body {
-          font-family: Arial, sans-serif;
-          max-width: 600px;
-          margin: 50px auto;
-          padding: 20px;
-          text-align: center;
-          background: #1a1a1a;
-          color: #fff;
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
         }
-        h2 { color: #7CFC00; }
-        form {
-          background: #2a2a2a;
-          padding: 30px;
-          border-radius: 10px;
-          margin-top: 20px;
+        body {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          background: transparent;
+          color: #2d3748;
+          padding: 20px;
+          line-height: 1.6;
+        }
+        .container {
+          max-width: 600px;
+          margin: 0 auto;
+          text-align: center;
+        }
+        h2 {
+          font-size: 2em;
+          font-weight: 700;
+          color: #1a202c;
+          margin-bottom: 12px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        .subtitle {
+          color: #718096;
+          font-size: 1em;
+          margin-bottom: 30px;
+          font-weight: 400;
+        }
+        .upload-container {
+          background: #ffffff;
+          border: 2px dashed #cbd5e0;
+          border-radius: 16px;
+          padding: 40px 30px;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        .upload-container:hover {
+          border-color: #667eea;
+          box-shadow: 0 8px 15px rgba(102, 126, 234, 0.1);
+        }
+        .file-input-wrapper {
+          position: relative;
+          overflow: hidden;
+          display: inline-block;
+          margin: 20px 0;
         }
         input[type="file"] {
-          margin: 20px 0;
-          padding: 10px;
+          position: absolute;
+          left: -9999px;
         }
-        button {
-          background: #7CFC00;
-          color: #000;
-          border: none;
-          padding: 15px 30px;
-          font-size: 16px;
-          border-radius: 5px;
+        .file-input-label {
+          display: inline-block;
+          padding: 14px 28px;
+          background: #f7fafc;
+          border: 2px solid #e2e8f0;
+          border-radius: 10px;
           cursor: pointer;
-          font-weight: bold;
+          font-weight: 500;
+          color: #4a5568;
+          transition: all 0.2s ease;
         }
-        button:hover { background: #6FE000; }
+        .file-input-label:hover {
+          background: #edf2f7;
+          border-color: #cbd5e0;
+        }
         .preview {
-          margin-top: 20px;
-          max-width: 100%;
+          margin: 25px 0;
+          min-height: 60px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
         }
         #imagePreview {
+          max-width: 100%;
+          max-height: 350px;
+          border-radius: 12px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+          display: none;
+        }
+        button[type="submit"] {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: #ffffff;
+          border: none;
+          padding: 16px 40px;
+          font-size: 16px;
+          font-weight: 600;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+          width: 100%;
           max-width: 300px;
+        }
+        button[type="submit"]:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        button[type="submit"]:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+        #status {
+          margin-top: 20px;
+          color: #667eea;
+          font-weight: 500;
+          min-height: 24px;
+          font-size: 0.95em;
+        }
+        .icon {
+          font-size: 2.5em;
+          margin-bottom: 15px;
+          filter: grayscale(20%);
+        }
+        .file-name {
+          color: #48bb78;
+          font-size: 0.9em;
           margin-top: 10px;
-          border-radius: 8px;
+          font-weight: 500;
+        }
+        @media (max-width: 768px) {
+          body {
+            padding: 15px;
+          }
+          h2 {
+            font-size: 1.6em;
+          }
+          .upload-container {
+            padding: 30px 20px;
+          }
+          button[type="submit"] {
+            padding: 14px 32px;
+            font-size: 15px;
+          }
         }
       </style>
     </head>
     <body>
-      <h2>🧟 Transform Your Face into a Zombie!</h2>
-      <p>Upload a clear photo of your face for best results</p>
-      <form action="/generate" method="post" enctype="multipart/form-data" id="uploadForm">
-        <input type="file" name="image" accept="image/*" required id="imageInput" />
-        <div class="preview">
-          <img id="imagePreview" style="display:none;" />
-        </div>
-        <br/>
-        <button type="submit" id="submitBtn">🧟 Zombify Me!</button>
-        <p id="status" style="margin-top: 15px; color: #7CFC00;"></p>
-      </form>
+      <div class="container">
+        <div class="icon">🧟</div>
+        <h2>Zombie Face Transformer</h2>
+        <p class="subtitle">Upload a clear photo of your face for best results</p>
+
+        <form action="/generate" method="post" enctype="multipart/form-data" id="uploadForm">
+          <div class="upload-container">
+            <div class="file-input-wrapper">
+              <input type="file" name="image" accept="image/*" required id="imageInput" />
+              <label for="imageInput" class="file-input-label">
+                📁 Choose Photo
+              </label>
+            </div>
+            <div class="file-name" id="fileName"></div>
+            <div class="preview">
+              <img id="imagePreview" alt="Preview" />
+            </div>
+            <button type="submit" id="submitBtn">Transform into Zombie</button>
+            <p id="status"></p>
+          </div>
+        </form>
+      </div>
 
       <script>
         const imageInput = document.getElementById('imageInput');
@@ -112,10 +225,12 @@ app.get("/", (req, res) => {
         const uploadForm = document.getElementById('uploadForm');
         const submitBtn = document.getElementById('submitBtn');
         const status = document.getElementById('status');
+        const fileName = document.getElementById('fileName');
 
         imageInput.addEventListener('change', (e) => {
           const file = e.target.files[0];
           if (file) {
+            fileName.textContent = '✓ ' + file.name;
             const reader = new FileReader();
             reader.onload = (e) => {
               imagePreview.src = e.target.result;
@@ -127,7 +242,7 @@ app.get("/", (req, res) => {
 
         uploadForm.addEventListener('submit', (e) => {
           submitBtn.disabled = true;
-          submitBtn.textContent = '🧟 Transforming...';
+          submitBtn.textContent = '⏳ Transforming...';
           status.textContent = 'This may take 30-60 seconds...';
         });
       </script>
@@ -184,47 +299,106 @@ app.post("/generate", upload.single("image"), async (req, res) => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>🧟 Your Zombie Transformation</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your Zombie Transformation</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
           body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 50px auto;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: transparent;
+            color: #2d3748;
             padding: 20px;
             text-align: center;
-            background: #1a1a1a;
-            color: #fff;
           }
-          h3 { color: #7CFC00; }
+          .container {
+            max-width: 800px;
+            margin: 0 auto;
+          }
+          h3 {
+            font-size: 1.8em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 30px;
+          }
+          .image-wrapper {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+          }
           img {
             max-width: 100%;
-            border-radius: 10px;
-            margin: 20px 0;
-            box-shadow: 0 0 20px rgba(124, 252, 0, 0.3);
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+          }
+          .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
           }
           a {
             display: inline-block;
-            background: #7CFC00;
-            color: #000;
-            padding: 15px 30px;
+            padding: 14px 28px;
             text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-            margin: 10px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
           }
-          a:hover { background: #6FE000; }
           .download {
-            background: #FF6B6B;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: #ffffff;
           }
-          .download:hover { background: #FF5252; }
+          .download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(72, 187, 120, 0.4);
+          }
+          .create-another {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+          }
+          .create-another:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+          }
+          @media (max-width: 768px) {
+            h3 {
+              font-size: 1.5em;
+            }
+            .button-group {
+              flex-direction: column;
+              align-items: center;
+            }
+            a {
+              width: 100%;
+              max-width: 300px;
+            }
+          }
         </style>
       </head>
       <body>
-        <h3>🧟 Your Zombie Transformation!</h3>
-        <img src="${imageUrl}" alt="Zombie Version" />
-        <br/>
-        <a href="${imageUrl}" download="zombie-me.png" class="download">⬇ Download Image</a>
-        <a href="/">🔄 Create Another</a>
+        <div class="container">
+          <h3>🧟 Your Zombie Transformation!</h3>
+          <div class="image-wrapper">
+            <img src="${imageUrl}" alt="Zombie Version" />
+          </div>
+          <div class="button-group">
+            <a href="${imageUrl}" download="zombie-me.png" class="download">⬇ Download Image</a>
+            <a href="/" class="create-another">🔄 Create Another</a>
+          </div>
+        </div>
       </body>
       </html>
     `);
@@ -242,35 +416,82 @@ app.post("/generate", upload.single("image"), async (req, res) => {
       <!DOCTYPE html>
       <html>
       <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Error</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
           body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 50px auto;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: transparent;
+            color: #2d3748;
             padding: 20px;
             text-align: center;
-            background: #1a1a1a;
-            color: #fff;
           }
-          h3 { color: #FF6B6B; }
+          .container {
+            max-width: 600px;
+            margin: 50px auto;
+          }
+          h3 {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #e53e3e;
+            margin-bottom: 20px;
+          }
+          .error-box {
+            background: #fff5f5;
+            border: 2px solid #feb2b2;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+          }
+          .error-message {
+            color: #c53030;
+            font-weight: 500;
+            margin-bottom: 15px;
+          }
+          .tips {
+            color: #718096;
+            line-height: 1.8;
+            margin-top: 15px;
+          }
           a {
             display: inline-block;
-            background: #7CFC00;
-            color: #000;
-            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            padding: 14px 28px;
             text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-            margin-top: 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-top: 25px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+          }
+          a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
           }
         </style>
       </head>
       <body>
-        <h3>⚠️ Transformation Failed</h3>
-        <p>Error: ${error.message}</p>
-        <p>Tips: Make sure your image shows a clear face and is under 10MB</p>
-        <a href="/">Try Again</a>
+        <div class="container">
+          <h3>⚠️ Transformation Failed</h3>
+          <div class="error-box">
+            <div class="error-message">Error: ${error.message}</div>
+            <div class="tips">
+              <strong>Tips:</strong><br>
+              • Make sure your image shows a clear face<br>
+              • Image must be under 10MB<br>
+              • Supported formats: JPG, PNG, WEBP
+            </div>
+          </div>
+          <a href="/">← Try Again</a>
+        </div>
       </body>
       </html>
     `);
